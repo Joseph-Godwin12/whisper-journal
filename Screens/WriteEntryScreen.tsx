@@ -18,7 +18,7 @@ export default function WriteEntryScreen() {
       return;
     }
 
-    const now = new Date();
+    const now = new Date()
    const newEntry: Entry = {
     id: uuidv4(),
     type: 'text',
