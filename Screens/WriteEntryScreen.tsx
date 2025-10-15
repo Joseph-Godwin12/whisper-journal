@@ -1,5 +1,5 @@
 // src/Screens/WriteEntryScreen.tsx
-import React, { useState } from 'react';
+import React, { useState } from 'react'
 import 'react-native-get-random-values';
 import { View, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -29,7 +29,7 @@ export default function WriteEntryScreen() {
 
   await addEntry(newEntry);
   setText('');
-  navigation.goBack();
+  navigation.goBack()
 };
 
   return (
