@@ -1,7 +1,7 @@
 //import {View, Text} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './navigation/AppNavigator';
-import { JournalProvider } from './context/JournalContent';
+import { JournalProvider } from './context/JournalContext';
 
 export default function App() {
   return (
