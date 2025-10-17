@@ -3,7 +3,6 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
-  Alert,
   Modal,
   TextInput,
 } from "react-native";
@@ -14,6 +13,7 @@ import { useJournal } from "../context/JournalContext";
 import { Entry } from "../context/JournalContext";
 import { useNavigation } from "@react-navigation/native";
 import CustomText from "../components/CustomText";
+import Toast from "react-native-toast-message"; // ✅ Import Toast
 
 export default function HomeScreen() {
   const { addEntry } = useJournal();
@@ -32,7 +32,11 @@ export default function HomeScreen() {
     try {
       const permission = await Audio.requestPermissionsAsync();
       if (permission.status !== "granted") {
-        Alert.alert("Permission required", "Microphone permission is needed to record.");
+        Toast.show({
+          type: "error",
+          text1: "Permission Required",
+          text2: "Microphone access is needed to record.",
+        });
         return;
       }
 
@@ -70,8 +74,6 @@ export default function HomeScreen() {
 
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
-      const status = await recording.getStatusAsync();
-      const durationMillis = status.durationMillis ?? 0;
 
       setIsRecording(false);
       setRecording(null);
@@ -103,85 +105,88 @@ export default function HomeScreen() {
     setShowTitleModal(false);
     setTitle("");
     setAudioUri(null);
-    Alert.alert("Saved!", "Recording saved to your Library.");
+
+    // ✅ Show toast notification
+    Toast.show({
+      type: "success",
+      text1: "Saved to Library 🎧",
+      text2: "Your audio has been added to your journal.",
+    });
   };
 
   return (
-  <SafeAreaView
-    style={styles.container}
-  >
-    <CustomText style={styles.title}>Whisper Journal 🎙️</CustomText>
+    <SafeAreaView style={styles.container}>
+      <CustomText style={styles.title}>Whisper Journal 🎙️</CustomText>
 
-    <SafeAreaView style={styles.waveformContainer}>
-      {levels.map((level, i) => (
-        <SafeAreaView key={i} style={[styles.bar, { height: level * 60 + 10 }]} />
-      ))}
-    </SafeAreaView>
+      <SafeAreaView style={styles.waveformContainer}>
+        {levels.map((level, i) => (
+          <SafeAreaView key={i} style={[styles.bar, { height: level * 60 + 10 }]} />
+        ))}
+      </SafeAreaView>
 
-    <TouchableOpacity
-      onPress={isRecording ? stopRecording : startRecording}
-      style={[styles.recordButton, isRecording && styles.recording]}
-    >
-      <FontAwesome
-        name={isRecording ? "stop" : "microphone"}
-        size={30}
-        color="#fff"
-      />
-    </TouchableOpacity>
+      <TouchableOpacity
+        onPress={isRecording ? stopRecording : startRecording}
+        style={[styles.recordButton, isRecording && styles.recording]}
+      >
+        <FontAwesome
+          name={isRecording ? "stop" : "microphone"}
+          size={30}
+          color="#fff"
+        />
+      </TouchableOpacity>
 
-    <CustomText style={styles.status}>
-      {isRecording
-        ? `Recording... ${Math.floor(duration / 60)}:${String(duration % 60).padStart(
-            2,
-            "0"
-          )}`
-        : "Tap to Record"}
-    </CustomText>
+      <CustomText style={styles.status}>
+        {isRecording
+          ? `Recording... ${Math.floor(duration / 60)}:${String(duration % 60).padStart(
+              2,
+              "0"
+            )}`
+          : "Tap to Record"}
+      </CustomText>
 
-    {/* ✏️ Floating Write Button */}
-    <TouchableOpacity
-      style={styles.writeButton}
-      onPress={() => navigation.navigate("Write")}
-    >
-      <FontAwesome name="pencil" size={24} color="#fff" />
-    </TouchableOpacity>
+      {/* ✏️ Floating Write Button */}
+      <TouchableOpacity
+        style={styles.writeButton}
+        onPress={() => navigation.navigate("Write")}
+      >
+        <FontAwesome name="pencil" size={24} color="#fff" />
+      </TouchableOpacity>
 
-    {/* 🎧 Title Input Modal */}
-    <Modal visible={showTitleModal} transparent animationType="fade">
-      <SafeAreaView style={styles.modalOverlay}>
-        <SafeAreaView style={styles.modalBox}>
-          <CustomText style={styles.modalTitle}>Enter Audio Title</CustomText>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="My recording..."
-            style={styles.input}
-            placeholderTextColor="#aaa"
-          />
-          <SafeAreaView style={styles.modalActions}>
-            <TouchableOpacity
-              onPress={() => {
-                setShowTitleModal(false);
-                setTitle("");
-                setAudioUri(null);
-              }}
-              style={[styles.modalButton, { backgroundColor: "#ccc" }]}
-            >
-              <CustomText style={{ color: "#000" }}>Cancel</CustomText>
-            </TouchableOpacity>
+      {/* 🎧 Title Input Modal */}
+      <Modal visible={showTitleModal} transparent animationType="fade">
+        <SafeAreaView style={styles.modalOverlay}>
+          <SafeAreaView style={styles.modalBox}>
+            <CustomText style={styles.modalTitle}>Enter Audio Title</CustomText>
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="My recording..."
+              style={styles.input}
+              placeholderTextColor="#aaa"
+            />
+            <SafeAreaView style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowTitleModal(false);
+                  setTitle("");
+                  setAudioUri(null);
+                }}
+                style={[styles.modalButton, { backgroundColor: "#ccc" }]}
+              >
+                <CustomText style={{ color: "#000" }}>Cancel</CustomText>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={saveAudioEntry}
-              style={[styles.modalButton, { backgroundColor: "#313d49ff" }]}
-            >
-              <CustomText style={{ color: "#fff" }}>Save</CustomText>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveAudioEntry}
+                style={[styles.modalButton, { backgroundColor: "#313d49ff" }]}
+              >
+                <CustomText style={{ color: "#fff" }}>Save</CustomText>
+              </TouchableOpacity>
+            </SafeAreaView>
           </SafeAreaView>
         </SafeAreaView>
-      </SafeAreaView>
-    </Modal>
-  </SafeAreaView>
-
+      </Modal>
+    </SafeAreaView>
   );
 }
 
@@ -190,7 +195,7 @@ const styles = StyleSheet.create({
     flex: 1, 
     backgroundColor: "#b3b0b0ff", 
     alignItems: "center", 
-   justifyContent: "center" 
+    justifyContent: "center" 
   },
   title: { 
     color: "#000", 

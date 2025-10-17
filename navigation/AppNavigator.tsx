@@ -46,7 +46,7 @@ function MainTabs() {
           return (
             <Ionicons
               name={iconName}
-              size={26}
+              size={23}
               color={color}
               style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}
             />
@@ -55,7 +55,7 @@ function MainTabs() {
         tabBarActiveTintColor: '#e3eefaff',
         tabBarInactiveTintColor: '#8c8c8c',
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '600',
           fontFamily: 'CustomFont', // <-- your custom font here
           marginTop: 0,
@@ -73,7 +73,7 @@ export default function AppNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        headerTitleStyle: { fontFamily: 'CustomFont' }, // <-- your custom font here
+        headerTitleStyle: { fontFamily: 'CustomFont' },
       }}
     >
       <Stack.Screen name="MainTabs" component={MainTabs} />

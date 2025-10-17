@@ -17,6 +17,8 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useJournal } from "../context/JournalContext";
 import CustomText from "../components/CustomText";
 
+import Toast from "react-native-toast-message"; // ✅ import Toast
+
 type RootStackParamList = {
   NoteDetails: {
     title: string;
@@ -49,7 +51,8 @@ export default function LibraryScreen() {
 
         // Remove duplicates by ID
         const unique = merged.filter(
-          (item, index, self) => index === self.findIndex((t) => t.id === item.id)
+          (item, index, self) =>
+            index === self.findIndex((t) => t.id === item.id)
         );
 
         // Sort newest first
@@ -77,56 +80,61 @@ export default function LibraryScreen() {
   };
 
   const playAudio = async (item: any) => {
-  try {
-    // If same audio is selected
-    if (playingId === item.id && sound) {
-      const status = await sound.getStatusAsync();
+    try {
+      // If same audio is selected
+      if (playingId === item.id && sound) {
+        const status = await sound.getStatusAsync();
 
-      if (status.isLoaded && status.isPlaying) {
-        await sound.pauseAsync(); // ⏸️ Pause
-      } else {
-        await sound.playAsync(); // ▶️ Resume
+        if (status.isLoaded && status.isPlaying) {
+          await sound.pauseAsync(); // ⏸️ Pause
+        } else {
+          await sound.playAsync(); // ▶️ Resume
+        }
+        return;
       }
-      return;
+
+      // If another audio is playing, stop it
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+      }
+
+      // Load new audio
+      const { sound: newSound } = await Audio.Sound.createAsync({
+        uri: item.audioUri,
+      });
+      setSound(newSound);
+      setPlayingId(item.id);
+
+      const status = await newSound.getStatusAsync();
+      if (status.isLoaded) setDuration(status.durationMillis! / 1000);
+
+      // Update playback state
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isLoaded) return;
+
+        if (status.isPlaying) {
+          setPlayTime(status.positionMillis / 1000);
+        } else if (!status.isPlaying && status.positionMillis > 0) {
+          setPlayTime(status.positionMillis / 1000);
+        }
+
+        if (status.didJustFinish) {
+          setPlayingId(null);
+          setPlayTime(0);
+        }
+      });
+
+      await newSound.playAsync();
+    } catch (err) {
+      console.error("Error playing audio:", err);
+      Toast.show({
+        type: "error",
+        text1: "Playback Error",
+        text2: "Could not play the audio file.",
+      });
     }
-
-    // If another audio is playing, stop it
-    if (sound) {
-      await sound.stopAsync();
-      await sound.unloadAsync();
-    }
-
-    // Load new audio
-    const { sound: newSound } = await Audio.Sound.createAsync({ uri: item.audioUri });
-    setSound(newSound);
-    setPlayingId(item.id);
-
-    const status = await newSound.getStatusAsync();
-    if (status.isLoaded) setDuration(status.durationMillis! / 1000);
-
-    // Update playback state
-    newSound.setOnPlaybackStatusUpdate((status) => {
-      if (!status.isLoaded) return;
-
-      if (status.isPlaying) {
-        setPlayTime(status.positionMillis / 1000);
-      } else if (!status.isPlaying && status.positionMillis > 0) {
-        // if paused
-        setPlayTime(status.positionMillis / 1000);
-      }
-
-      if (status.didJustFinish) {
-        setPlayingId(null);
-        setPlayTime(0);
-      }
-    });
-
-    await newSound.playAsync();
-  } catch (err) {
-    console.error("Error playing audio:", err);
-  }
-};
-
+  };
 
   const handleDelete = async (id: string) => {
     Alert.alert("Delete Entry", "Are you sure you want to delete this?", [
@@ -140,17 +148,32 @@ export default function LibraryScreen() {
             const stored = await AsyncStorage.getItem("journalEntries");
             const offline = stored ? JSON.parse(stored) : [];
             const updated = offline.filter((item: any) => item.id !== id);
-            await AsyncStorage.setItem("journalEntries", JSON.stringify(updated));
+            await AsyncStorage.setItem(
+              "journalEntries",
+              JSON.stringify(updated)
+            );
             setAllEntries((prev) => prev.filter((item) => item.id !== id));
+
+            // ✅ Toast success message
+            Toast.show({
+              type: "success",
+              text1: "Deleted!",
+              text2: "The entry has been removed successfully.",
+            });
           } catch (e) {
             console.error("Error deleting entry:", e);
+            Toast.show({
+              type: "error",
+              text1: "Error",
+              text2: "Could not delete the entry.",
+            });
           }
         },
       },
     ]);
   };
 
-  // 🔍 Filter and search combined
+  // 🔍 Filter + search combined
   const filteredEntries = allEntries
     .filter((e) => {
       if (filter === "all") return true;
@@ -181,8 +204,12 @@ export default function LibraryScreen() {
       <View style={{ flex: 1 }}>
         {item.type === "audio" ? (
           <>
-            <CustomText style={styles.text}>🎙️ {item.title || "Untitled Audio"}</CustomText>
-            <CustomText style={styles.subText}>{item.date} - {item.time}</CustomText>
+            <CustomText style={styles.text}>
+              🎙️ {item.title || "Untitled Audio"}
+            </CustomText>
+            <CustomText style={styles.subText}>
+              {item.date} - {item.time}
+            </CustomText>
             {playingId === item.id ? (
               <CustomText style={styles.subText}>
                 {formatTime(playTime)} / {formatTime(duration)}
@@ -195,28 +222,31 @@ export default function LibraryScreen() {
           </>
         ) : (
           <>
-            <CustomText style={styles.text}>📝 {item.title || "Untitled Note"}</CustomText>
-            <CustomText style={styles.subText}>{item.date} - {item.time}</CustomText>
+            <CustomText style={styles.text}>
+              📝 {item.title || "Untitled Note"}
+            </CustomText>
+            <CustomText style={styles.subText}>
+              {item.date} - {item.time}
+            </CustomText>
           </>
         )}
       </View>
 
       {item.type === "audio" && (
-       <TouchableOpacity onPress={() => playAudio(item)}>
-        <FontAwesome
-              name={
-                playingId === item.id
-                  ? sound
-                    ? "pause"
-                    : "play"
+        <TouchableOpacity onPress={() => playAudio(item)}>
+          <FontAwesome
+            name={
+              playingId === item.id
+                ? sound
+                  ? "pause"
                   : "play"
-              }
-              size={22}
-              color="#fff"
-              style={{ marginRight: 15 }}
-        />
-      </TouchableOpacity>
-
+                : "play"
+            }
+            size={22}
+            color="#fff"
+            style={{ marginRight: 15 }}
+          />
+        </TouchableOpacity>
       )}
 
       <TouchableOpacity onPress={() => handleDelete(item.id)}>
@@ -238,22 +268,29 @@ export default function LibraryScreen() {
         onChangeText={setSearchQuery}
       />
 
-      {/* 🔘 Filter Toggle */}
+      {/* 🔘 Filter Buttons */}
       <View style={styles.toggleContainer}>
         <TouchableOpacity
           style={[styles.toggleButton, filter === "all" && styles.activeToggle]}
           onPress={() => setFilter("all")}
         >
-          <CustomText style={[styles.toggleText, filter === "all" && styles.activeText]}>
+          <CustomText
+            style={[styles.toggleText, filter === "all" && styles.activeText]}
+          >
             📂 All
           </CustomText>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.toggleButton, filter === "audio" && styles.activeToggle]}
+          style={[
+            styles.toggleButton,
+            filter === "audio" && styles.activeToggle,
+          ]}
           onPress={() => setFilter("audio")}
         >
-          <Text style={[styles.toggleText, filter === "audio" && styles.activeText]}>
+          <Text
+            style={[styles.toggleText, filter === "audio" && styles.activeText]}
+          >
             🎙️ Audio
           </Text>
         </TouchableOpacity>
@@ -262,7 +299,9 @@ export default function LibraryScreen() {
           style={[styles.toggleButton, filter === "text" && styles.activeToggle]}
           onPress={() => setFilter("text")}
         >
-          <CustomText style={[styles.toggleText, filter === "text" && styles.activeText]}>
+          <CustomText
+            style={[styles.toggleText, filter === "text" && styles.activeText]}
+          >
             📝 Notes
           </CustomText>
         </TouchableOpacity>
@@ -277,15 +316,18 @@ export default function LibraryScreen() {
           renderItem={renderItem}
         />
       )}
+
+      {/* ✅ Toast Message Component */}
+      <Toast />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#b3b0b0ff", 
-    padding: 20 
+  container: {
+    flex: 1,
+    backgroundColor: "#b3b0b0ff",
+    padding: 20,
   },
   title: {
     color: "#000",
@@ -293,7 +335,7 @@ const styles = StyleSheet.create({
     fontFamily: "CustomFont",
     marginBottom: 10,
     textAlign: "center",
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   searchInput: {
     borderColor: "#ddd",
@@ -318,7 +360,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeToggle: { backgroundColor: "#313d49ff" },
-  toggleText: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  toggleText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+    fontFamily: "CustomFont",
+  },
   activeText: { color: "#fff" },
   empty: { color: "#666", textAlign: "center", marginTop: 40 },
   item: {

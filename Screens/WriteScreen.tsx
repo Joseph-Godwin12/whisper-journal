@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   TextInput,
   TouchableOpacity,
-  Text,
   StyleSheet,
-  Alert,
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -12,6 +10,7 @@ import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useJournal, Entry } from "../context/JournalContext";
 import CustomText from "../components/CustomText";
+import Toast from "react-native-toast-message";
 
 export default function WriteScreen() {
   const [title, setTitle] = useState("");
@@ -19,14 +18,23 @@ export default function WriteScreen() {
   const navigation = useNavigation();
   const { addEntry } = useJournal();
 
-  // Save entry both to context and AsyncStorage
+  // ✅ Save note to context + AsyncStorage
   const saveText = async () => {
     if (!title.trim()) {
-      Alert.alert("Missing Title", "Please enter a title for your note.");
+      Toast.show({
+        type: "error",
+        text1: "Missing Title",
+        text2: "Please enter a title for your note.",
+      });
       return;
     }
+
     if (!text.trim()) {
-      Alert.alert("Empty Note", "Please write something before saving.");
+      Toast.show({
+        type: "error",
+        text1: "Empty Note",
+        text2: "Please write something before saving.",
+      });
       return;
     }
 
@@ -41,20 +49,32 @@ export default function WriteScreen() {
     };
 
     try {
-      // Save to context
+      // Add to global journal context
       await addEntry(newEntry);
-
-      // Save to AsyncStorage (offline)
+      
+      // Save to AsyncStorage for offline use
       const stored = await AsyncStorage.getItem("journalEntries");
       const entries = stored ? JSON.parse(stored) : [];
-      const updated = [newEntry, ...entries]; // new entry appears on top
+      const updated = [newEntry, ...entries];
       await AsyncStorage.setItem("journalEntries", JSON.stringify(updated));
+      
+      // ✅ Success toast
+      Toast.show({
+        type: "success",
+        text1: "Saved!",
+        text2: "Your note has been added to the library.",
+      });
 
-      Alert.alert("Saved!", "Your note has been saved to the library.");
       navigation.goBack();
     } catch (error) {
       console.error("Error saving entry:", error);
-      Alert.alert("Error", "Could not save your note. Please try again.");
+
+      // ❌ Error toast
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Could not save your note. Please try again.",
+      });
     }
   };
 
@@ -82,6 +102,9 @@ export default function WriteScreen() {
       <TouchableOpacity style={styles.saveButton} onPress={saveText}>
         <CustomText style={styles.saveText}>Save</CustomText>
       </TouchableOpacity>
+
+      {/* ✅ Toast Component */}
+      <Toast />
     </SafeAreaView>
   );
 }
@@ -90,7 +113,8 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: "#b3b0b0ff", 
-    padding: 20 },
+    padding: 20 
+  },
   titleInput: {
     fontSize: 20,
     fontWeight: "600",
@@ -116,5 +140,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
-  saveText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  saveText: { 
+    color: "#fff", 
+    fontSize: 18, 
+    fontWeight: "bold" 
+  },
 });
