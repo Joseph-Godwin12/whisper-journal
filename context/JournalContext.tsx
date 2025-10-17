@@ -7,6 +7,7 @@ export interface Entry {
   date: string;
   time: string;
   title: string;
+  content?: string;
   audioUri?: string;
   duration?: number;
   text?: string;
@@ -16,25 +17,24 @@ interface JournalContextType {
   entries: Entry[];
   addEntry: (entry: Entry) => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
+  updateEntry: (id: string, updatedData: Partial<Entry>) => Promise<void>;
 }
 
 const JournalContext = createContext<JournalContextType>({
   entries: [],
   addEntry: async () => {},
   deleteEntry: async () => {},
+  updateEntry: async () => {},
 });
 
 export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [entries, setEntries] = useState<Entry[]>([]);
 
-  // ✅ Load saved entries when app starts
   useEffect(() => {
     const loadEntries = async () => {
       try {
         const saved = await AsyncStorage.getItem("entries");
-        if (saved) {
-          setEntries(JSON.parse(saved));
-        }
+        if (saved) setEntries(JSON.parse(saved));
       } catch (err) {
         console.error("Error loading entries:", err);
       }
@@ -42,22 +42,26 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     loadEntries();
   }, []);
 
-  // ✅ Save entries automatically whenever updated
   useEffect(() => {
     AsyncStorage.setItem("entries", JSON.stringify(entries));
   }, [entries]);
 
   const addEntry = async (entry: Entry) => {
-   setEntries((prev) => [entry, ...prev]);
-
+    setEntries((prev) => [entry, ...prev]);
   };
 
   const deleteEntry = async (id: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
+  const updateEntry = async (id: string, updatedData: Partial<Entry>) => {
+    setEntries((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, ...updatedData } : entry))
+    );
+  };
+
   return (
-    <JournalContext.Provider value={{ entries, addEntry, deleteEntry }}>
+    <JournalContext.Provider value={{ entries, addEntry, deleteEntry, updateEntry }}>
       {children}
     </JournalContext.Provider>
   );

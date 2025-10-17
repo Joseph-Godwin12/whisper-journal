@@ -6,6 +6,7 @@ import {
   StyleSheet,
   View,
   Alert,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Audio } from "expo-av";
@@ -14,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useJournal } from "../context/JournalContext";
+import CustomText from "../components/CustomText";
 
 type RootStackParamList = {
   NoteDetails: {
@@ -34,9 +36,10 @@ export default function LibraryScreen() {
   const [playTime, setPlayTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [allEntries, setAllEntries] = useState(entries);
-  const [filter, setFilter] = useState<"audio" | "text">("audio"); // 🔘 Filter toggle
+  const [filter, setFilter] = useState<"audio" | "text" | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // ✅ Load entries from AsyncStorage (offline)
+  // ✅ Load entries (offline + online)
   useEffect(() => {
     const loadOfflineEntries = async () => {
       try {
@@ -59,7 +62,7 @@ export default function LibraryScreen() {
     loadOfflineEntries();
   }, [entries]);
 
-  // ✅ Unload sound when screen unmounts
+  // ✅ Unload sound on unmount
   useEffect(() => {
     return () => {
       if (sound) sound.unloadAsync();
@@ -74,40 +77,56 @@ export default function LibraryScreen() {
   };
 
   const playAudio = async (item: any) => {
-    try {
-      if (playingId === item.id) {
-        await sound?.stopAsync();
+  try {
+    // If same audio is selected
+    if (playingId === item.id && sound) {
+      const status = await sound.getStatusAsync();
+
+      if (status.isLoaded && status.isPlaying) {
+        await sound.pauseAsync(); // ⏸️ Pause
+      } else {
+        await sound.playAsync(); // ▶️ Resume
+      }
+      return;
+    }
+
+    // If another audio is playing, stop it
+    if (sound) {
+      await sound.stopAsync();
+      await sound.unloadAsync();
+    }
+
+    // Load new audio
+    const { sound: newSound } = await Audio.Sound.createAsync({ uri: item.audioUri });
+    setSound(newSound);
+    setPlayingId(item.id);
+
+    const status = await newSound.getStatusAsync();
+    if (status.isLoaded) setDuration(status.durationMillis! / 1000);
+
+    // Update playback state
+    newSound.setOnPlaybackStatusUpdate((status) => {
+      if (!status.isLoaded) return;
+
+      if (status.isPlaying) {
+        setPlayTime(status.positionMillis / 1000);
+      } else if (!status.isPlaying && status.positionMillis > 0) {
+        // if paused
+        setPlayTime(status.positionMillis / 1000);
+      }
+
+      if (status.didJustFinish) {
         setPlayingId(null);
         setPlayTime(0);
-        return;
       }
+    });
 
-      if (sound) {
-        await sound.stopAsync();
-        await sound.unloadAsync();
-      }
+    await newSound.playAsync();
+  } catch (err) {
+    console.error("Error playing audio:", err);
+  }
+};
 
-      const { sound: newSound } = await Audio.Sound.createAsync({ uri: item.audioUri });
-      setSound(newSound);
-      setPlayingId(item.id);
-
-      const status = await newSound.getStatusAsync();
-      if (status.isLoaded) setDuration(status.durationMillis! / 1000);
-
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (!status.isLoaded) return;
-        if (status.isPlaying) setPlayTime(status.positionMillis / 1000);
-        if (status.didJustFinish) {
-          setPlayingId(null);
-          setPlayTime(0);
-        }
-      });
-
-      await newSound.playAsync();
-    } catch (err) {
-      console.error("Error playing audio:", err);
-    }
-  };
 
   const handleDelete = async (id: string) => {
     Alert.alert("Delete Entry", "Are you sure you want to delete this?", [
@@ -131,6 +150,19 @@ export default function LibraryScreen() {
     ]);
   };
 
+  // 🔍 Filter and search combined
+  const filteredEntries = allEntries
+    .filter((e) => {
+      if (filter === "all") return true;
+      return e.type === filter;
+    })
+    .filter((e) => {
+      const query = searchQuery.toLowerCase();
+      const title = e.title?.toLowerCase() || "";
+      const text = e.text?.toLowerCase() || e.content?.toLowerCase() || "";
+      return title.includes(query) || text.includes(query);
+    });
+
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.item}
@@ -138,7 +170,7 @@ export default function LibraryScreen() {
         if (item.type === "text") {
           navigation.navigate("NoteDetails", {
             title: item.title,
-            content:  item.text || item.content || "",
+            content: item.text || item.content || "",
             date: item.date,
             time: item.time,
           });
@@ -149,34 +181,42 @@ export default function LibraryScreen() {
       <View style={{ flex: 1 }}>
         {item.type === "audio" ? (
           <>
-            <Text style={styles.text}>🎙️ {item.date} - {item.time}</Text>
+            <CustomText style={styles.text}>🎙️ {item.title || "Untitled Audio"}</CustomText>
+            <CustomText style={styles.subText}>{item.date} - {item.time}</CustomText>
             {playingId === item.id ? (
-              <Text style={styles.subText}>
+              <CustomText style={styles.subText}>
                 {formatTime(playTime)} / {formatTime(duration)}
-              </Text>
+              </CustomText>
             ) : (
-              <Text style={styles.subText}>
+              <CustomText style={styles.subText}>
                 Duration: {formatTime(item.duration ?? 0)}
-              </Text>
+              </CustomText>
             )}
           </>
         ) : (
           <>
-            <Text style={styles.text}>📝 {item.title || "Untitled Note"}</Text>
-            <Text style={styles.subText}>{item.date} - {item.time}</Text>
+            <CustomText style={styles.text}>📝 {item.title || "Untitled Note"}</CustomText>
+            <CustomText style={styles.subText}>{item.date} - {item.time}</CustomText>
           </>
         )}
       </View>
 
       {item.type === "audio" && (
-        <TouchableOpacity onPress={() => playAudio(item)}>
-          <FontAwesome
-            name={playingId === item.id ? "pause" : "play"}
-            size={22}
-            color="#fff"
-            style={{ marginRight: 15 }}
-          />
-        </TouchableOpacity>
+       <TouchableOpacity onPress={() => playAudio(item)}>
+        <FontAwesome
+              name={
+                playingId === item.id
+                  ? sound
+                    ? "pause"
+                    : "play"
+                  : "play"
+              }
+              size={22}
+              color="#fff"
+              style={{ marginRight: 15 }}
+        />
+      </TouchableOpacity>
+
       )}
 
       <TouchableOpacity onPress={() => handleDelete(item.id)}>
@@ -185,14 +225,30 @@ export default function LibraryScreen() {
     </TouchableOpacity>
   );
 
-  const filteredEntries = allEntries.filter((e) => e.type === filter);
-
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>My Library 📚</Text>
+      <CustomText style={styles.title}>My Library 📚</CustomText>
+
+      {/* 🔍 Search Bar */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search notes or recordings..."
+        placeholderTextColor="#999"
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
 
       {/* 🔘 Filter Toggle */}
       <View style={styles.toggleContainer}>
+        <TouchableOpacity
+          style={[styles.toggleButton, filter === "all" && styles.activeToggle]}
+          onPress={() => setFilter("all")}
+        >
+          <CustomText style={[styles.toggleText, filter === "all" && styles.activeText]}>
+            📂 All
+          </CustomText>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.toggleButton, filter === "audio" && styles.activeToggle]}
           onPress={() => setFilter("audio")}
@@ -206,14 +262,14 @@ export default function LibraryScreen() {
           style={[styles.toggleButton, filter === "text" && styles.activeToggle]}
           onPress={() => setFilter("text")}
         >
-          <Text style={[styles.toggleText, filter === "text" && styles.activeText]}>
+          <CustomText style={[styles.toggleText, filter === "text" && styles.activeText]}>
             📝 Notes
-          </Text>
+          </CustomText>
         </TouchableOpacity>
       </View>
 
       {filteredEntries.length === 0 ? (
-        <Text style={styles.empty}>No {filter === "audio" ? "recordings" : "notes"} yet</Text>
+        <CustomText style={styles.empty}>No matches found</CustomText>
       ) : (
         <FlatList
           data={filteredEntries}
@@ -226,13 +282,28 @@ export default function LibraryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#b3b0b0ff", 
+    padding: 20 
+  },
   title: {
     color: "#000",
     fontSize: 22,
+    fontFamily: "CustomFont",
     marginBottom: 10,
     textAlign: "center",
     fontWeight: "bold",
+  },
+  searchInput: {
+    borderColor: "#ddd",
+    borderWidth: 1,
+    borderRadius: 8,
+    fontFamily: "CustomFont",
+    padding: 10,
+    fontSize: 16,
+    marginBottom: 15,
+    color: "#000",
   },
   toggleContainer: {
     flexDirection: "row",
@@ -242,18 +313,18 @@ const styles = StyleSheet.create({
   toggleButton: {
     backgroundColor: "#aaa",
     paddingVertical: 10,
-    paddingHorizontal: 25,
+    paddingHorizontal: 20,
     borderRadius: 20,
-    marginHorizontal: 10,
+    marginHorizontal: 5,
   },
-  activeToggle: { backgroundColor: "#2e86de" },
-  toggleText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  activeToggle: { backgroundColor: "#313d49ff" },
+  toggleText: { color: "#fff", fontSize: 15, fontWeight: "600" },
   activeText: { color: "#fff" },
   empty: { color: "#666", textAlign: "center", marginTop: 40 },
   item: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2e86de",
+    backgroundColor: "#313d49ff",
     padding: 15,
     borderRadius: 10,
     marginBottom: 10,

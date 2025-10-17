@@ -1,4 +1,3 @@
-// src/navigation/AppNavigator.tsx
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -16,13 +15,51 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarShowLabel: false,
-        tabBarIcon: ({ color, size }) => {
-          const iconName = route.name === 'Home' ? 'home' : 'library';
-          return <Ionicons name={iconName as any} size={size} color={color} />;
+        tabBarShowLabel: true,
+        tabBarStyle: {
+          height: 60,
+          left: 20,
+          right: 20,
+          borderRadius: 25,
+          bottom: 20,
+          padding: 12,
+          paddingBottom: 5,
+          paddingTop: 5,
+          backgroundColor: '#313d49ff',
+          borderWidth: 1,
+          borderTopWidth: 1,
+          borderTopColor: '#f0f0f0',
+          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.15,
+          shadowRadius: 8,
+          position: 'absolute',
         },
-        tabBarActiveTintColor: '#2e86de',
-        tabBarInactiveTintColor: 'gray',
+        tabBarIcon: ({ focused, color }) => {
+          let iconName: any;
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else {
+            iconName = focused ? 'library' : 'library-outline';
+          }
+          return (
+            <Ionicons
+              name={iconName}
+              size={26}
+              color={color}
+              style={{ transform: [{ scale: focused ? 1.1 : 1 }] }}
+            />
+          );
+        },
+        tabBarActiveTintColor: '#e3eefaff',
+        tabBarInactiveTintColor: '#8c8c8c',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          fontFamily: 'CustomFont', // <-- your custom font here
+          marginTop: 0,
+        },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
@@ -33,7 +70,12 @@ function MainTabs() {
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        headerTitleStyle: { fontFamily: 'CustomFont' }, // <-- your custom font here
+      }}
+    >
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="NoteDetails" component={NoteDetails} />
       <Stack.Screen name="Write" component={WriteScreen} />

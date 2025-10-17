@@ -1,0 +1,96 @@
+# Whisper Journal
+
+Whisper Journal is a personal diary mobile application built with **React Native** and **Expo**. It allows users to **record audio notes**, **write text notes**, and organize their thoughts securely and conveniently. The app features a sleek UI, custom fonts, and smooth navigation for an enjoyable journaling experience.
+
+---
+
+## Features
+
+- **Audio Recording:** Record and save personal audio entries.
+- **Text Notes:** Write and store diary entries in text form.
+- **Navigation:** Easy navigation between Home, Library, Write, and Note Details screens.
+- **Custom Fonts:** Uses a custom font (`Quicksand-Regular`) for a modern look.
+- **Splash Screen:** Attractive splash screen displayed on app launch.
+- **Journal Organization:** View all entries in a clean, organized layout.
+
+---
+
+## Screens
+
+1. **Home Screen** – Dashboard overview of recent journal entries.  
+2. **Library Screen** – List and search through previous notes and recordings.  
+3. **Write Screen** – Create a new audio or text entry.  
+4. **Note Details** – View a single note with its full content or audio playback.  
+
+---
+
+## Installation
+
+1. **Clone the repository:**
+
+```bash
+git clone https://github.com/Joseph-Godwin12/whisper-journal.git
+cd whisper-journal
+Install dependencies:
+
+bash
+Copy code
+npm install
+# or
+yarn install
+Start the Expo project:
+
+bash
+Copy code
+expo start
+Scan the QR code with the Expo Go app on your phone or run on an emulator.
+
+Project Structure
+bash
+Copy code
+whisper-journal/
+│
+├─ assets/
+│  └─ fonts/
+│     └─ Quicksand-Regular.ttf
+│
+├─ components/
+│  └─ CustomText.tsx       # Custom Text component with global font
+│
+├─ context/
+│  └─ JournalContext.tsx   # State management for journal entries
+│
+├─ navigation/
+│  └─ AppNavigator.tsx     # Stack and Tab navigation
+│
+├─ Screens/
+│  ├─ HomeScreen.tsx
+│  ├─ LibraryScreen.tsx
+│  ├─ WriteScreen.tsx
+│  ├─ NoteDetailsScreen.tsx
+│  └─ SplashScreen.tsx
+│
+├─ App.tsx
+└─ package.json
+Technologies Used
+React Native – Mobile app framework.
+
+Expo – Development and build platform.
+
+TypeScript – Static type checking.
+
+React Navigation – Stack and Tab navigation.
+
+Expo Font – Custom font support.
+
+React Context – State management for journal entries.
+
+How to Use
+Open the app to see the splash screen.
+
+Navigate to Write Screen to create a new text or audio note.
+
+Visit the Library Screen to view, search, and manage all your previous entries.
+
+Tap any note to see it in full detail on the Note Details Screen.
+

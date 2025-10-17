@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useJournal, Entry } from "../context/JournalContext";
+import CustomText from "../components/CustomText";
 
 export default function WriteScreen() {
   const [title, setTitle] = useState("");
@@ -79,17 +80,21 @@ export default function WriteScreen() {
       </ScrollView>
 
       <TouchableOpacity style={styles.saveButton} onPress={saveText}>
-        <Text style={styles.saveText}>Save</Text>
+        <CustomText style={styles.saveText}>Save</CustomText>
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#b3b0b0ff", 
+    padding: 20 },
   titleInput: {
     fontSize: 20,
     fontWeight: "600",
+    fontFamily: "CustomFont",
     color: "#000",
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
@@ -98,13 +103,14 @@ const styles = StyleSheet.create({
   },
   textInput: {
     fontSize: 18,
+    fontFamily: "CustomFont",
     color: "#000",
     textAlignVertical: "top",
     padding: 10,
     minHeight: 250,
   },
   saveButton: {
-    backgroundColor: "#2e86de",
+    backgroundColor: "#313d49ff",
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: "center",
