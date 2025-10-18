@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
-import Toast from 'react-native-toast-message'; // ✅ Import toast
+import Toast from 'react-native-toast-message';
+import CustomText from '../components/CustomText'; 
 
 export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
   const [passcode, setPasscode] = useState('');
@@ -134,12 +135,16 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
       />
 
       <View style={styles.button}>
-        <Button title={storedPasscode ? 'Unlock' : 'Set Passcode'} onPress={handlePasscodeAuth} />
+        <Button 
+        title={storedPasscode ? 'Unlock' : 'Set Passcode'} 
+        onPress={handlePasscodeAuth} 
+        color="#313d49ff"
+        />
       </View>
 
       {biometricAvailable && storedPasscode && (
-        <View style={{ marginTop: 20 }}>
-          <Button title="Use Biometrics" onPress={enableBiometricAutoLogin} />
+        <View style={styles.button2}>
+          <Button title="Use Biometrics" onPress={enableBiometricAutoLogin} color="#313d49ff"/>
         </View>
       )}
     </View>
@@ -152,7 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#b3b0b0ff',
   },
   passcode: {
     fontSize: 18,
@@ -163,6 +168,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 8,
+    color: '#000',
     padding: 10,
     fontFamily: 'CustomFont',
     width: '80%',
@@ -172,6 +178,13 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
     width: '60%',
+    backgroundColor: "#313d49ff", 
+    fontFamily: 'CustomFont',
+  },
+  button2: {
+     marginTop: 20,
+     backgroundColor: "#313d49ff", 
+     fontFamily: 'CustomFont'
   },
   loading: {
     flex: 1,

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "whisper-journal",
+    "name": "Whisper Journal",
     "slug": "whisper-journal",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,26 +9,30 @@
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#fdf6f0"
+      "resizeMode": "contain"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.joseph768.whisperjournal"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       "expo-font",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f3c6c0f3-0f2a-4b7a-9991-439db12e1006"
+      }
+    }
   }
 }
