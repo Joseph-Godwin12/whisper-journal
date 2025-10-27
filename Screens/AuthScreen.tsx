@@ -8,17 +8,19 @@ import {
   StyleSheet,
   AppState,
   AppStateStatus,
+  Alert,
 } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import Toast from 'react-native-toast-message';
 import CustomText from '../components/CustomText'; 
 
-export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () => void }) {
+export default function AuthScreen({ onAuthenticated }) {
   const [passcode, setPasscode] = useState('');
-  const [storedPasscode, setStoredPasscode] = useState<string | null>(null);
+  const [storedPasscode, setStoredPasscode] = useState(null);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false); // prevent loops
   const appState = useRef(AppState.currentState);
 
   useEffect(() => {
@@ -28,15 +30,26 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
     return () => subscription.remove();
   }, []);
 
-  const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-    if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App resumed — rechecking biometrics...');
-      await initAuth();
+  const handleAppStateChange = async (nextAppState) => {
+    // only trigger biometric recheck if user really reopens the app from background
+    if (
+      appState.current.match(/background/) &&
+      nextAppState === 'active' &&
+      !isAuthenticating
+    ) {
+      console.log('App resumed from background — checking biometrics once...');
+      // slight delay to avoid triggering during audio recording transitions
+      setTimeout(() => {
+        initAuth();
+      }, 800);
     }
     appState.current = nextAppState;
   };
 
   const initAuth = async () => {
+    if (isAuthenticating) return; // avoid multiple triggers
+
+    setIsAuthenticating(true);
     setLoading(true);
 
     try {
@@ -53,6 +66,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
         const result = await LocalAuthentication.authenticateAsync({
           promptMessage: 'Unlock Whisper Journal',
           fallbackLabel: 'Use Passcode',
+          cancelLabel: 'Cancel',
         });
 
         if (result.success) {
@@ -63,6 +77,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
           });
           onAuthenticated();
           setLoading(false);
+          setIsAuthenticating(false);
           return;
         } else {
           console.log('Biometric auth cancelled or failed.');
@@ -73,6 +88,7 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
     }
 
     setLoading(false);
+    setIsAuthenticating(false);
   };
 
   const handlePasscodeAuth = async () => {
@@ -102,13 +118,17 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
   };
 
   const enableBiometricAutoLogin = async () => {
-    await SecureStore.setItemAsync('useBiometrics', 'true');
-    Toast.show({
-      type: 'success',
-      text1: 'Biometrics Enabled',
-      text2: 'Next time, you’ll unlock automatically using biometrics.',
-    });
-    await initAuth();
+    try {
+      await SecureStore.setItemAsync('useBiometrics', 'true');
+      Toast.show({
+        type: 'success',
+        text1: 'Biometrics Enabled',
+        text2: 'Next time, you’ll unlock automatically using biometrics.',
+      });
+      await initAuth();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to enable biometrics. Try again.');
+    }
   };
 
   if (loading) {
@@ -135,16 +155,20 @@ export default function AuthScreen({ onAuthenticated }: { onAuthenticated: () =>
       />
 
       <View style={styles.button}>
-        <Button 
-        title={storedPasscode ? 'Unlock' : 'Set Passcode'} 
-        onPress={handlePasscodeAuth} 
-        color="#313d49ff"
+        <Button
+          title={storedPasscode ? 'Unlock' : 'Set Passcode'}
+          onPress={handlePasscodeAuth}
+          color="#313d49ff"
         />
       </View>
 
       {biometricAvailable && storedPasscode && (
         <View style={styles.button2}>
-          <Button title="Use Biometrics" onPress={enableBiometricAutoLogin} color="#313d49ff"/>
+          <Button
+            title="Use Biometrics"
+            onPress={enableBiometricAutoLogin}
+            color="#313d49ff"
+          />
         </View>
       )}
     </View>
@@ -178,13 +202,11 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
     width: '60%',
-    backgroundColor: "#313d49ff", 
-    fontFamily: 'CustomFont',
+    backgroundColor: '#313d49ff',
   },
   button2: {
-     marginTop: 20,
-     backgroundColor: "#313d49ff", 
-     fontFamily: 'CustomFont'
+    marginTop: 20,
+    backgroundColor: '#313d49ff',
   },
   loading: {
     flex: 1,
