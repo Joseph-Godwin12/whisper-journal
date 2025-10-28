@@ -4,6 +4,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -18,7 +21,6 @@ export default function WriteScreen() {
   const navigation = useNavigation();
   const { addEntry } = useJournal();
 
-  // ✅ Save note to context + AsyncStorage
   const saveText = async () => {
     if (!title.trim()) {
       Toast.show({
@@ -49,16 +51,13 @@ export default function WriteScreen() {
     };
 
     try {
-      // Add to global journal context
       await addEntry(newEntry);
-      
-      // Save to AsyncStorage for offline use
+
       const stored = await AsyncStorage.getItem("journalEntries");
       const entries = stored ? JSON.parse(stored) : [];
       const updated = [newEntry, ...entries];
       await AsyncStorage.setItem("journalEntries", JSON.stringify(updated));
-      
-      // ✅ Success toast
+
       Toast.show({
         type: "success",
         text1: "Saved!",
@@ -68,8 +67,6 @@ export default function WriteScreen() {
       navigation.goBack();
     } catch (error) {
       console.error("Error saving entry:", error);
-
-      // ❌ Error toast
       Toast.show({
         type: "error",
         text1: "Error",
@@ -80,31 +77,46 @@ export default function WriteScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <TextInput
-          style={styles.titleInput}
-          placeholder="Enter title..."
-          placeholderTextColor="#777"
-          value={title}
-          onChangeText={setTitle}
-        />
+      {/* ✅ Keeps screen above keyboard */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={80}
+      >
+        <ScrollView
+          style={{ flex: 1 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <View>
+            <TextInput
+              style={styles.titleInput}
+              placeholder="Enter title..."
+              placeholderTextColor="#777"
+              value={title}
+              onChangeText={setTitle}
+              returnKeyType="next"
+            />
 
-        <TextInput
-          style={styles.textInput}
-          placeholder="Write your thoughts..."
-          placeholderTextColor="#999"
-          value={text}
-          onChangeText={setText}
-          multiline
-        />
-      </ScrollView>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Write your thoughts..."
+              placeholderTextColor="#999"
+              value={text}
+              onChangeText={setText}
+              multiline
+              textAlignVertical="top"
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-      <TouchableOpacity style={styles.saveButton} onPress={saveText}>
-        <CustomText style={styles.saveText}>Save</CustomText>
-      </TouchableOpacity>
 
-      {/* ✅ Toast Component */}
-      <Toast />
+        <TouchableOpacity style={styles.saveButton} onPress={saveText}>
+          <CustomText style={styles.saveText}>Save</CustomText>
+        </TouchableOpacity>
+        <Toast />
     </SafeAreaView>
   );
 }
