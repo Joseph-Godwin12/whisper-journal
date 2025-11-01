@@ -58,7 +58,8 @@ function MainTabs() {
           fontSize: 10,
           fontWeight: '600',
           fontFamily: 'CustomFont', // <-- your custom font here
-          marginTop: 0,
+          marginTop: 4,
+
         },
       })}
     >

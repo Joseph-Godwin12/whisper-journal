@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// 🧩 Define Entry type
 export interface Entry {
   id: string;
   type: "audio" | "text";
@@ -13,6 +14,7 @@ export interface Entry {
   text?: string;
 }
 
+// 🧠 Define the context type
 interface JournalContextType {
   entries: Entry[];
   addEntry: (entry: Entry) => Promise<void>;
@@ -20,6 +22,7 @@ interface JournalContextType {
   updateEntry: (id: string, updatedData: Partial<Entry>) => Promise<void>;
 }
 
+// 🪄 Create the context
 const JournalContext = createContext<JournalContextType>({
   entries: [],
   addEntry: async () => {},
@@ -27,9 +30,11 @@ const JournalContext = createContext<JournalContextType>({
   updateEntry: async () => {},
 });
 
+// 💾 Provider Component
 export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [entries, setEntries] = useState<Entry[]>([]);
 
+  // Load saved entries on mount
   useEffect(() => {
     const loadEntries = async () => {
       try {
@@ -42,18 +47,22 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
     loadEntries();
   }, []);
 
+  // Save entries whenever they change
   useEffect(() => {
     AsyncStorage.setItem("entries", JSON.stringify(entries));
   }, [entries]);
 
+  // Add new entry
   const addEntry = async (entry: Entry) => {
     setEntries((prev) => [entry, ...prev]);
   };
 
+  // Delete entry
   const deleteEntry = async (id: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
+  // Update entry
   const updateEntry = async (id: string, updatedData: Partial<Entry>) => {
     setEntries((prev) =>
       prev.map((entry) => (entry.id === id ? { ...entry, ...updatedData } : entry))
@@ -67,4 +76,5 @@ export const JournalProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 };
 
+// 🧭 Hook for easy access
 export const useJournal = () => useContext(JournalContext);

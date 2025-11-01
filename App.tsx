@@ -5,8 +5,6 @@ import AppNavigator from './navigation/AppNavigator';
 import { JournalProvider } from './context/JournalContext';
 import SplashScreen from './Screens/SplashScreen';
 import { useFonts } from 'expo-font';
-import * as LocalAuthentication from 'expo-local-authentication';
-import AuthScreen from './Screens/AuthScreen';
 import ToastMessage from './components/ToastMessage';
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -46,11 +44,7 @@ export default function App() {
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   }
-
-  // Show authentication screen if not authenticated
-  if (!isAuthenticated) {
-    return <AuthScreen onAuthenticated={() => setIsAuthenticated(true)} />;
-  }
+  
 
   return (
     <JournalProvider>
