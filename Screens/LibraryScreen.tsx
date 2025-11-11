@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React,  { useEffect, useState } from "react";
 import {
   Text,
   FlatList,
@@ -9,15 +9,14 @@ import {
   TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Audio } from "expo-av";
+import { Audio } from "expo-av"; // ✅ Correct import
 import { FontAwesome } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useJournal } from "../context/JournalContext";
 import CustomText from "../components/CustomText";
-
-import Toast from "react-native-toast-message"; // ✅ import Toast
+import Toast from "react-native-toast-message";
 
 type RootStackParamList = {
   NoteDetails: {
@@ -33,6 +32,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function LibraryScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { entries, deleteEntry } = useJournal();
+
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [playTime, setPlayTime] = useState<number>(0);
@@ -41,7 +41,6 @@ export default function LibraryScreen() {
   const [filter, setFilter] = useState<"audio" | "text" | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ✅ Load entries (offline + online)
   useEffect(() => {
     const loadOfflineEntries = async () => {
       try {
@@ -49,13 +48,11 @@ export default function LibraryScreen() {
         const offlineEntries = stored ? JSON.parse(stored) : [];
         const merged = [...offlineEntries, ...entries];
 
-        // Remove duplicates by ID
         const unique = merged.filter(
           (item, index, self) =>
             index === self.findIndex((t) => t.id === item.id)
         );
 
-        // Sort newest first
         unique.sort((a, b) => Number(b.id) - Number(a.id));
         setAllEntries(unique);
       } catch (error) {
@@ -65,7 +62,6 @@ export default function LibraryScreen() {
     loadOfflineEntries();
   }, [entries]);
 
-  // ✅ Unload sound on unmount
   useEffect(() => {
     return () => {
       if (sound) sound.unloadAsync();
@@ -81,44 +77,44 @@ export default function LibraryScreen() {
 
   const playAudio = async (item: any) => {
     try {
-      // If same audio is selected
+      if (!item.audioUri) {
+        Toast.show({
+          type: "error",
+          text1: "Audio Missing",
+          text2: "This recording file no longer exists.",
+        });
+        return;
+      }
+
       if (playingId === item.id && sound) {
         const status = await sound.getStatusAsync();
-
         if (status.isLoaded && status.isPlaying) {
-          await sound.pauseAsync(); // ⏸️ Pause
+          await sound.pauseAsync();
         } else {
-          await sound.playAsync(); // ▶️ Resume
+          await sound.playAsync();
         }
         return;
       }
 
-      // If another audio is playing, stop it
       if (sound) {
         await sound.stopAsync();
         await sound.unloadAsync();
       }
 
-      // Load new audio
       const { sound: newSound } = await Audio.Sound.createAsync({
         uri: item.audioUri,
       });
+
       setSound(newSound);
       setPlayingId(item.id);
 
       const status = await newSound.getStatusAsync();
-      if (status.isLoaded) setDuration(status.durationMillis! / 1000);
+      if (status.isLoaded && status.durationMillis)
+        setDuration(status.durationMillis / 1000);
 
-      // Update playback state
       newSound.setOnPlaybackStatusUpdate((status) => {
         if (!status.isLoaded) return;
-
-        if (status.isPlaying) {
-          setPlayTime(status.positionMillis / 1000);
-        } else if (!status.isPlaying && status.positionMillis > 0) {
-          setPlayTime(status.positionMillis / 1000);
-        }
-
+        if (status.isPlaying) setPlayTime(status.positionMillis / 1000);
         if (status.didJustFinish) {
           setPlayingId(null);
           setPlayTime(0);
@@ -154,7 +150,6 @@ export default function LibraryScreen() {
             );
             setAllEntries((prev) => prev.filter((item) => item.id !== id));
 
-            // ✅ Toast success message
             Toast.show({
               type: "success",
               text1: "Deleted!",
@@ -173,12 +168,8 @@ export default function LibraryScreen() {
     ]);
   };
 
-  // 🔍 Filter + search combined
   const filteredEntries = allEntries
-    .filter((e) => {
-      if (filter === "all") return true;
-      return e.type === filter;
-    })
+    .filter((e) => (filter === "all" ? true : e.type === filter))
     .filter((e) => {
       const query = searchQuery.toLowerCase();
       const title = e.title?.toLowerCase() || "";
@@ -235,13 +226,7 @@ export default function LibraryScreen() {
       {item.type === "audio" && (
         <TouchableOpacity onPress={() => playAudio(item)}>
           <FontAwesome
-            name={
-              playingId === item.id
-                ? sound
-                  ? "pause"
-                  : "play"
-                : "play"
-            }
+            name={playingId === item.id ? "pause" : "play"}
             size={22}
             color="#fff"
             style={{ marginRight: 15 }}
@@ -259,7 +244,6 @@ export default function LibraryScreen() {
     <SafeAreaView style={styles.container}>
       <CustomText style={styles.title}>My Library 📚</CustomText>
 
-      {/* 🔍 Search Bar */}
       <TextInput
         style={styles.searchInput}
         placeholder="Search notes or recordings..."
@@ -268,7 +252,6 @@ export default function LibraryScreen() {
         onChangeText={setSearchQuery}
       />
 
-      {/* 🔘 Filter Buttons */}
       <View style={styles.toggleContainer}>
         <TouchableOpacity
           style={[styles.toggleButton, filter === "all" && styles.activeToggle]}
@@ -282,10 +265,7 @@ export default function LibraryScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.toggleButton,
-            filter === "audio" && styles.activeToggle,
-          ]}
+          style={[styles.toggleButton, filter === "audio" && styles.activeToggle]}
           onPress={() => setFilter("audio")}
         >
           <Text
@@ -317,18 +297,13 @@ export default function LibraryScreen() {
         />
       )}
 
-      {/* ✅ Toast Message Component */}
       <Toast />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#b3b0b0ff",
-    padding: 20,
-  },
+  container: { flex: 1, backgroundColor: "#b3b0b0ff", padding: 20 },
   title: {
     color: "#000",
     fontSize: 22,
@@ -347,11 +322,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     color: "#000",
   },
-  toggleContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
+  toggleContainer: { flexDirection: "row", justifyContent: "center", marginBottom: 20 },
   toggleButton: {
     backgroundColor: "#aaa",
     paddingVertical: 10,
